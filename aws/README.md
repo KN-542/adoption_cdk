@@ -1,14 +1,38 @@
-# Welcome to your CDK TypeScript project
+## CDK
 
-This is a blank project for CDK development with TypeScript.
+### CDKToolKit 作成
 
-The `cdk.json` file tells the CDK Toolkit how to execute your app.
+```
+cdk bootstrap
+```
 
-## Useful commands
+### Stack 作成
 
-* `npm run build`   compile typescript to js
-* `npm run watch`   watch for changes and compile
-* `npm run test`    perform the jest unit tests
-* `npx cdk deploy`  deploy this stack to your default AWS account/region
-* `npx cdk diff`    compare deployed stack with current state
-* `npx cdk synth`   emits the synthesized CloudFormation template
+```
+npx cdk deploy
+```
+
+### Stack 削除
+
+```
+npx cdk destroy
+```
+
+## git clone
+
+```
+git config --global user.name "your_name"
+git config --global user.email "your_email"
+git clone https://git-codecommit.ap-northeast-1.amazonaws.com/v1/repos/adoption_docker
+git clone https://git-codecommit.ap-northeast-1.amazonaws.com/v1/repos/adoption_go
+git clone https://git-codecommit.ap-northeast-1.amazonaws.com/v1/repos/adoption_batch
+git clone https://git-codecommit.ap-northeast-1.amazonaws.com/v1/repos/adoption_nextjs
+git clone https://git-codecommit.ap-northeast-1.amazonaws.com/v1/repos/applicant_nextjs
+```
+
+なお、
+
+```
+ユーザー名：initial-admin-user-859546977801-at-859546977801
+パスワード：geKYItdGvVQjJQ2O28Jjr/pE37RtcchY9pQDT6X3pLQ=
+```

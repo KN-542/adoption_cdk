@@ -5,7 +5,7 @@ import * as dotenv from 'dotenv'
 
 dotenv.config()
 
-export class AdoptionEC2Stack extends Stack {
+export class AdoptionStack extends Stack {
   constructor(scope: Construct, id: string, props?: StackProps) {
     super(scope, id, props)
 
@@ -95,7 +95,24 @@ export class AdoptionEC2Stack extends Stack {
       aws_ec2.MultipartBody.SHELL_SCRIPT,
       true
     )
-    ec2_command.addCommands()
+    ec2_command.addCommands(
+      '#!/bin/bash',
+      '',
+      'yum update -y',
+      // Git
+      'yum install -y git',
+      // Docker
+      'yum install -y docker',
+      'systemctl start docker',
+      'systemctl enable docker',
+      'chmod 666 /var/run/docker.sock',
+      // docker-compose
+      'mkdir -p /usr/local/lib/docker/cli-plugins',
+      'VER=2.4.1',
+      'curl -L https://github.com/docker/compose/releases/download/v${VER}/docker-compose-$(uname -s)-$(uname -m) -o /usr/local/lib/docker/cli-plugins/docker-compose',
+      'chmod +x /usr/local/lib/docker/cli-plugins/docker-compose',
+      'ln -s /usr/local/lib/docker/cli-plugins/docker-compose /usr/bin/docker-compose'
+    )
 
     const ec2 = new aws_ec2.Instance(this, 'adoption', {
       vpc: vpc,
@@ -104,7 +121,7 @@ export class AdoptionEC2Stack extends Stack {
 
       instanceType: aws_ec2.InstanceType.of(
         aws_ec2.InstanceClass.T3,
-        aws_ec2.InstanceSize.MEDIUM
+        aws_ec2.InstanceSize.LARGE
       ),
       machineImage: new aws_ec2.AmazonLinuxImage({
         generation: aws_ec2.AmazonLinuxGeneration.AMAZON_LINUX_2,

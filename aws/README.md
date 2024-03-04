@@ -34,5 +34,5 @@ git clone https://git-codecommit.ap-northeast-1.amazonaws.com/v1/repos/applicant
 
 ```
 ユーザー名：initial-admin-user-859546977801-at-859546977801
-パスワード：geKYItdGvVQjJQ2O28Jjr/pE37RtcchY9pQDT6X3pLQ=
+パスワード：個別に聞いてください
 ```

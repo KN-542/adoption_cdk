@@ -13,7 +13,7 @@ export class AdoptionStack extends Stack {
     // VPC
     //
 
-    const vpc = new aws_ec2.Vpc(this, 'VPC', {
+    const vpc = new aws_ec2.Vpc(this, 'adoption-vpc', {
       natGateways: 0,
     })
 
@@ -21,7 +21,7 @@ export class AdoptionStack extends Stack {
     // EC2
     //
 
-    const ec2_sg = new aws_ec2.SecurityGroup(this, 'ec2-sg', {
+    const ec2_sg = new aws_ec2.SecurityGroup(this, 'adoption-ec2-sg', {
       vpc: vpc,
     })
 
@@ -121,7 +121,7 @@ export class AdoptionStack extends Stack {
 
       instanceType: aws_ec2.InstanceType.of(
         aws_ec2.InstanceClass.T3,
-        aws_ec2.InstanceSize.LARGE
+        aws_ec2.InstanceSize.XLARGE
       ),
       machineImage: new aws_ec2.AmazonLinuxImage({
         generation: aws_ec2.AmazonLinuxGeneration.AMAZON_LINUX_2,
@@ -130,9 +130,19 @@ export class AdoptionStack extends Stack {
       role: ec2_role,
       keyName: 'key',
       userData: ec2_user_data,
+      blockDevices: [
+        {
+          deviceName: '/dev/sdf', // 追加のEBSボリュームのデバイス名
+          volume: aws_ec2.BlockDeviceVolume.ebs(16, {
+            deleteOnTermination: false,
+            encrypted: true,
+            volumeType: aws_ec2.EbsDeviceVolumeType.GP2,
+          }),
+        },
+      ],
     })
 
-    new CfnOutput(this, 'ec2-output', {
+    new CfnOutput(this, 'adoption-ec2-output', {
       value: ec2.instancePublicIp,
     })
   }

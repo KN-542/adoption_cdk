@@ -121,7 +121,7 @@ export class AdoptionStack extends Stack {
 
       instanceType: aws_ec2.InstanceType.of(
         aws_ec2.InstanceClass.T3,
-        aws_ec2.InstanceSize.XLARGE
+        aws_ec2.InstanceSize.SMALL
       ),
       machineImage: new aws_ec2.AmazonLinuxImage({
         generation: aws_ec2.AmazonLinuxGeneration.AMAZON_LINUX_2,
@@ -132,9 +132,9 @@ export class AdoptionStack extends Stack {
       userData: ec2_user_data,
       blockDevices: [
         {
-          deviceName: '/dev/sdf', // 追加のEBSボリュームのデバイス名
-          volume: aws_ec2.BlockDeviceVolume.ebs(16, {
-            deleteOnTermination: false,
+          deviceName: '/dev/xvda',
+          volume: aws_ec2.BlockDeviceVolume.ebs(160, {
+            deleteOnTermination: true,
             encrypted: true,
             volumeType: aws_ec2.EbsDeviceVolumeType.GP2,
           }),

@@ -23,6 +23,7 @@
     "aws-cdk-lib": "2.121.0",
     "constructs": "^10.0.0",
     "dotenv": "^16.4.4",
+    "scheduled-natgateway": "^1.0.5",
     "source-map-support": "^0.5.21"
   }
 }

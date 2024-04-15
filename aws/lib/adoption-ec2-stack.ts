@@ -2,6 +2,7 @@ import { aws_ec2, aws_iam, CfnOutput, Stack, StackProps } from 'aws-cdk-lib'
 
 import { Construct } from 'constructs'
 import * as dotenv from 'dotenv'
+import { ScheduledNatGateway } from 'scheduled-natgateway'
 
 dotenv.config()
 
@@ -14,8 +15,30 @@ export class AdoptionStack extends Stack {
     //
 
     const vpc = new aws_ec2.Vpc(this, 'adoption-vpc', {
-      natGateways: 0,
+      subnetConfiguration: [
+        {
+          cidrMask: 24,
+          name: 'public',
+          subnetType: aws_ec2.SubnetType.PUBLIC,
+        },
+        // {
+        //   cidrMask: 24,
+        //   name: 'private',
+        //   subnetType: aws_ec2.SubnetType.PRIVATE_ISOLATED,
+        // },
+      ],
     })
+
+    // const scheduledNatGateway = new ScheduledNatGateway(
+    //   this,
+    //   'adoption-NatGateway',
+    //   {
+    //     publicSubnetId: vpc.publicSubnets[0].subnetId,
+    //     privateSubnetId: vpc.publicSubnets[1].subnetId,
+    //     createSchedule: '50 14 * * *',
+    //     deleteSchedule: '10 15 * * *',
+    //   }
+    // )
 
     //
     // EC2

@@ -31,7 +31,7 @@ aws configure
 git config --global credential.helper '!aws codecommit credential-helper $@'
 git config --global credential.UseHttpPath true
 git clone https://git-codecommit.ap-northeast-1.amazonaws.com/v1/repos/adoption_docker
-git clone https://git-codecommit.ap-northeast-1.amazonaws.com/v1/repos/adoption_go
+git clone --branch main https://git-codecommit.ap-northeast-1.amazonaws.com/v1/repos/adoption_go
 git clone https://git-codecommit.ap-northeast-1.amazonaws.com/v1/repos/adoption_nextjs
 git clone https://git-codecommit.ap-northeast-1.amazonaws.com/v1/repos/applicant_nextjs
 ```

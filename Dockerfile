@@ -24,7 +24,7 @@ RUN apt update \
     && apt clean
 
 # install the latest AWS CDK
-RUN npm install -g aws-cdk
+RUN npm install aws-cdk@latest --save-dev
 
 # install the latest AWSCLI
 RUN apt update \

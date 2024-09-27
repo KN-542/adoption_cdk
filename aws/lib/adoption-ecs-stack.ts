@@ -3,8 +3,10 @@ import { Stack, StackProps } from 'aws-cdk-lib'
 import * as ecs from 'aws-cdk-lib/aws-ecs'
 import * as ec2 from 'aws-cdk-lib/aws-ec2'
 import * as elbv2 from 'aws-cdk-lib/aws-elasticloadbalancingv2'
-import * as wafv2 from 'aws-cdk-lib/aws-wafv2'
 import * as iam from 'aws-cdk-lib/aws-iam'
+import * as route53 from 'aws-cdk-lib/aws-route53'
+import * as route53Targets from 'aws-cdk-lib/aws-route53-targets'
+import * as acm from 'aws-cdk-lib/aws-certificatemanager'
 import { Construct } from 'constructs'
 import * as dotenv from 'dotenv'
 
@@ -64,22 +66,7 @@ export class EcsStack extends Stack {
       containerPort: 3000, // コンテナポートを3000に設定
     })
 
-    // Application Load Balancerを作成
-    const loadBalancer = new elbv2.ApplicationLoadBalancer(
-      this,
-      'AdoptionALB',
-      {
-        vpc: vpc,
-        internetFacing: true, // インターネットに面したALB
-      }
-    )
-
-    // ALBのリスナーを作成（ポート80でリスニング）
-    const listener = loadBalancer.addListener('AdoptionListener', {
-      port: 80, // ALBはポート80でリクエストを受ける
-    })
-
-    // ECSサービスを作成し、ALBにターゲットグループを紐付け
+    // ECSサービスを作成
     const service = new ecs.FargateService(this, 'AdoptionFargateService', {
       cluster: cluster,
       taskDefinition: taskDefinition,
@@ -90,65 +77,102 @@ export class EcsStack extends Stack {
       },
     })
 
-    // ALBにFargateのターゲットグループを紐付け
-    listener.addTargets('AdoptionECS', {
-      port: 80, // ALBはポート80で受け取り
-      targets: [service],
-      healthCheck: {
-        path: '/', // ヘルスチェックのパスを指定
-        interval: cdk.Duration.seconds(30), // チェック間隔
-        timeout: cdk.Duration.seconds(5), // タイムアウト
-        healthyThresholdCount: 2, // 正常と見なす回数
-        unhealthyThresholdCount: 2, // 異常と見なす回数
-      },
+    // Application Load Balancerを作成
+    const loadBalancer = new elbv2.ApplicationLoadBalancer(
+      this,
+      'AdoptionALB',
+      {
+        vpc: vpc,
+        internetFacing: true, // インターネットに面したALB
+      }
+    )
+
+    // ターゲットグループを作成し、ECSサービスを登録
+    const targetGroup = new elbv2.ApplicationTargetGroup(
+      this,
+      'AdoptionTargetGroup',
+      {
+        vpc: vpc,
+        port: 3000, // ターゲットグループのポート
+        protocol: elbv2.ApplicationProtocol.HTTP,
+        targets: [
+          service.loadBalancerTarget({
+            containerName: 'AdoptionNextJsContainer',
+            containerPort: 3000,
+          }),
+        ], // FargateServiceのターゲットを指定
+        healthCheck: {
+          path: '/', // ヘルスチェックのパスを指定
+        },
+      }
+    )
+
+    // Route 53のホストゾーンを取得
+    const hostedZone = route53.HostedZone.fromLookup(
+      this,
+      'AdoptionHostedZone',
+      {
+        domainName: String(process.env.DOMAIN_NAME), // 登録済みドメイン名
+      }
+    )
+
+    // サブドメイン用のSSL証明書をACMで作成
+    const certificate = new acm.Certificate(this, 'AdoptionCertificate', {
+      domainName: `${String(process.env.SUB_DOMAIN_NAME)}.${String(
+        process.env.DOMAIN_NAME
+      )}`,
+      validation: acm.CertificateValidation.fromDns(hostedZone), // DNS検証で証明書を発行
     })
 
-    // WAF で許可する IP アドレスリスト
+    // ALBのリスナーを作成（ポート80でリスニング）
+    const listenerHttp = loadBalancer.addListener('AdoptionHttpListener', {
+      port: 80, // ALBはポート80でリクエストを受ける
+      defaultAction: elbv2.ListenerAction.redirect({
+        protocol: 'HTTPS',
+        port: '443',
+        permanent: true, // HTTPSにリダイレクト
+      }),
+    })
+
+    // ALBのリスナーを作成（ポート443でリスニング、証明書を追加）
+    const listenerHttps = loadBalancer.addListener('AdoptionHttpsListener', {
+      port: 443, // ALBはポート443でリクエストを受ける
+      certificates: [certificate], // SSL証明書を使用
+      defaultAction: elbv2.ListenerAction.fixedResponse(200, {
+        contentType: 'text/plain',
+        messageBody: 'OK',
+      }),
+    })
+
+    // 許可するIPアドレスのリスト
     const allowedIps: string[] = [
       String(process.env.SG_IP),
       String(process.env.SG_IP2),
     ]
 
-    // WAF IPセットを作成
-    const ipSet = new wafv2.CfnIPSet(this, 'AdoptionIPSet', {
-      addresses: allowedIps, // 許可するIP範囲を指定
-      ipAddressVersion: 'IPV4',
-      scope: 'REGIONAL', // リージョン単位のWAFを使用
-      name: 'AllowedIPSet',
+    // 許可するIPアドレスごとにルールを追加
+    let priorityCounter = 1
+    allowedIps.forEach((ip) => {
+      listenerHttp.addAction(`AllowHttpIP-${ip}`, {
+        priority: priorityCounter++,
+        conditions: [elbv2.ListenerCondition.sourceIps([ip])],
+        action: elbv2.ListenerAction.forward([targetGroup]),
+      })
+
+      listenerHttps.addAction(`AllowHttpsIP-${ip}`, {
+        priority: priorityCounter++,
+        conditions: [elbv2.ListenerCondition.sourceIps([ip])],
+        action: elbv2.ListenerAction.forward([targetGroup]),
+      })
     })
 
-    // WAF WebACLを作成し、IP制限ルールを追加
-    const webAcl = new wafv2.CfnWebACL(this, 'WebACL', {
-      defaultAction: { allow: {} }, // デフォルトアクションは許可
-      scope: 'REGIONAL',
-      rules: [
-        {
-          name: 'AllowSpecificIPs',
-          priority: 1,
-          action: { allow: {} }, // 許可ルール
-          statement: {
-            ipSetReferenceStatement: {
-              arn: ipSet.attrArn, // 上で作成したIPセットを参照
-            },
-          },
-          visibilityConfig: {
-            cloudWatchMetricsEnabled: true,
-            metricName: 'AllowSpecificIPs',
-            sampledRequestsEnabled: true,
-          },
-        },
-      ],
-      visibilityConfig: {
-        cloudWatchMetricsEnabled: true,
-        metricName: 'WebACL',
-        sampledRequestsEnabled: true,
-      },
-    })
-
-    // WAFをALBに関連付け
-    new wafv2.CfnWebACLAssociation(this, 'AdoptionWebACLAssociation', {
-      resourceArn: loadBalancer.loadBalancerArn,
-      webAclArn: webAcl.attrArn,
+    // Route 53にALBのAレコードを作成
+    new route53.ARecord(this, 'AdoptionAliasRecord', {
+      zone: hostedZone,
+      recordName: String(process.env.SUB_DOMAIN_NAME), // サブドメイン名
+      target: route53.RecordTarget.fromAlias(
+        new route53Targets.LoadBalancerTarget(loadBalancer)
+      ),
     })
   }
 }

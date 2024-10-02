@@ -366,7 +366,7 @@ export class EcsStack extends Stack {
             }),
           ],
           healthCheck: {
-            path: '/',
+            path: '/health',
           },
         }
       )

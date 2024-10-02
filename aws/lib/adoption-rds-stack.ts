@@ -130,11 +130,35 @@ export class DBStack extends Stack {
         generation: aws_ec2.AmazonLinuxGeneration.AMAZON_LINUX_2,
       }),
       keyName: 'key',
+      blockDevices: [
+        {
+          deviceName: '/dev/xvda',
+          volume: aws_ec2.BlockDeviceVolume.ebs(20, {
+            deleteOnTermination: true,
+            encrypted: true,
+            volumeType: aws_ec2.EbsDeviceVolumeType.GP2,
+          }),
+        },
+      ],
     })
 
     //
     // Aurora PostgreSQL (RDS)
     //
+
+    const rdsParameterGroup = new aws_rds.ParameterGroup(
+      this,
+      'PostgresParameterGroup',
+      {
+        engine: aws_rds.DatabaseInstanceEngine.postgres({
+          version: aws_rds.PostgresEngineVersion.VER_15,
+        }),
+        parameters: {
+          log_statement: 'all',
+          log_min_duration_statement: '5000',
+        },
+      }
+    )
 
     const rds = new aws_rds.DatabaseInstance(
       this,
@@ -157,7 +181,8 @@ export class DBStack extends Stack {
         storageEncrypted: true,
         cloudwatchLogsExports: ['postgresql'],
         cloudwatchLogsRetention: aws_logs.RetentionDays.ONE_MONTH,
-        removalPolicy: RemovalPolicy.DESTROY, // 開発用。削除時にDBも削除
+        removalPolicy: RemovalPolicy.DESTROY,
+        parameterGroup: rdsParameterGroup,
       }
     )
     rds.connections.allowDefaultPortFrom(bastionSG)

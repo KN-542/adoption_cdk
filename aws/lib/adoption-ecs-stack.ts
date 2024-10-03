@@ -9,7 +9,7 @@ import {
   CfnOutput,
   Stack,
   StackProps,
-  aws_servicediscovery,
+  Duration,
 } from 'aws-cdk-lib'
 import { Construct } from 'constructs'
 import * as dotenv from 'dotenv'
@@ -142,6 +142,7 @@ export class EcsStack extends Stack {
         cluster: ecsCluster,
         serviceName: String(process.env.FRONT_CONTAINER_NAME),
         taskDefinition: frontendTaskDefinition1,
+        healthCheckGracePeriod: Duration.seconds(2147483647),
         desiredCount: 1,
         assignPublicIp: true,
         vpcSubnets: {
@@ -193,6 +194,7 @@ export class EcsStack extends Stack {
         cluster: ecsCluster,
         serviceName: String(process.env.FRONT2_CONTAINER_NAME),
         taskDefinition: frontendTaskDefinition2,
+        healthCheckGracePeriod: Duration.seconds(2147483647),
         desiredCount: 1,
         assignPublicIp: true,
         vpcSubnets: {
@@ -285,6 +287,7 @@ export class EcsStack extends Stack {
         cluster: ecsCluster,
         serviceName: String(process.env.BACKEND_CONTAINER_NAME),
         taskDefinition: backendTaskDefinition,
+        healthCheckGracePeriod: Duration.seconds(2147483647),
         desiredCount: 1,
         assignPublicIp: true,
         vpcSubnets: {

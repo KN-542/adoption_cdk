@@ -139,5 +139,9 @@
         ]
       }
     ]
+  },
+  "hosted-zone:account=859546977801:domainName=nexulon.jp:region=ap-northeast-1": {
+    "Id": "/hostedzone/Z0340433SXM3VYDQ6NP9",
+    "Name": "nexulon.jp."
   }
 }
